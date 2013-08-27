@@ -7,36 +7,37 @@ struct TapDetector : public Listener {
 	Frame lastFrame;
 	void onPolledFrame(const Controller & controller)
 	{
+		Frame thisFrame = controller.frame();
 		int MaxHistory = 100;
 		for (int i=1;i < MaxHistory; i++)
-			{
-				Frame frame = controller.frame(i-1);
-				Frame previousFrame = controller.frame(i);
-
-				if (!previousFrame.isValid())
-					break;
-
-		for (int p = 0; p < frame.pointables().count();p++)
 		{
-			Pointable pN = frame.pointables()[p];
-			Pointable pN_prev = previousFrame.pointable(pN.id());
-
-			if (!pN_prev.isValid())
-			continue; //Pointable has only been around for one frame
-
-			//Look for the transition from inside to outside of the touchzone
-			if (pN_prev.touchDistance() <= 0 && pN.touchDistance() > 0)
-			{
-				 printf("App Thread: Pointable %d tapped\n",pN.id());
-				}
-			}
-
-			//We reached the frame processed last time
-			if (previousFrame.id() == lastFrame.id())
+			Frame frame = controller.frame(i-1);
+			Frame previousFrame = controller.frame(i);
+						
+			//Last frame is invalid
+			if (!previousFrame.isValid())
+				break;
+			
+			//We reached the frame that was processed last time
+			if (frame == lastFrame)
 				break;
 
+			for (int p = 0; p < frame.pointables().count();p++)
+			{
+				Pointable pN = frame.pointables()[p];
+				Pointable pN_prev = previousFrame.pointable(pN.id());
+
+				if (!pN_prev.isValid())
+					continue; //Pointable has only been around for one frame
+
+				//Look for the transition from inside to outside of the touchzone
+				if (pN_prev.touchDistance() <= 0 && pN.touchDistance() > 0)
+				{
+					 printf("App Thread: Pointable %d tapped\n",pN.id());
+				}
+			}
 		}
-		lastFrame = controller.frame();
+		lastFrame = thisFrame;
 	}
 
 	void onFrame(const Controller & controller)
@@ -63,13 +64,15 @@ struct TapDetector : public Listener {
 			}
 		}
 	}
-}
+};
 
 
-int main()
+int main(int argc, char * argv[])
 {
 	Controller controller;
 	TapDetector tapDetector;
+	
+	controller.addListener(tapDetector);
 
 	while (true)
 	{
@@ -79,4 +82,6 @@ int main()
 
 		//Rendering 
 	}
+	
+	return 0;
 }
